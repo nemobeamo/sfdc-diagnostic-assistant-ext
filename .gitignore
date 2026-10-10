@@ -1,0 +1,22 @@
+# Local system and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Dependencies and scratch work
+node_modules/
+work/
+tmp/
+
+# Credentials and Salesforce CLI state
+.env
+.env.*
+!.env.example
+.sf/
+.sfdx/
+
+# Generated packages and diagnostic evidence
+*.zip
+*.har
+*.webm
+*.log

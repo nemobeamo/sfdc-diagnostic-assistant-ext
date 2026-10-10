@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Salesforce diagnostics</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="popup.css"></head>
+<body class="popup">
+<header class="popupHeader"><p class="eyebrow">Salesforce Support</p><h1 id="headline">Capture the issue</h1><p id="intro" class="muted">Preparing your diagnostics…</p></header>
+<main>
+<section id="captureControls" class="capturePanel" aria-label="Diagnostic recording" hidden>
+<div class="connectionState"><p id="connectionLabel" class="connectionLabel">Checking connection</p><p id="connectedOrg" class="connectionOrg"></p></div>
+<p id="authStatus" class="muted" role="status">Checking Salesforce connection…</p>
+<div id="actionGroups" class="actionGroups">
+<div id="connectionActions" class="actionGroup">
+<button id="connect" class="secondary" disabled>Connect Salesforce</button>
+<button id="finish" class="secondary" hidden>Allow org access</button>
+</div>
+<div id="recordingActions" class="actionGroup">
+<button id="start" class="primaryAction" disabled>Start recording</button>
+<button id="stop" class="primaryAction stopAction" hidden>Stop and review</button>
+</div>
+</div>
+<p id="status" class="captureStatus" role="status">Checking recording…</p>
+<button id="review" class="textAction evidenceAction" hidden>Open latest evidence</button>
+<p id="authDiagnostic" class="notice" role="status" hidden></p>
+</section>
+<section class="settingsGroup" aria-label="Diagnostic settings">
+<details id="connectionPanel" class="connectionPanel">
+<summary id="connectionSummary">Salesforce connection</summary>
+<div class="settingsContent">
+<label for="loginOrigin">Salesforce login URL</label><input id="loginOrigin" type="url" value="https://login.salesforce.com" autocomplete="off" spellcheck="false">
+<p id="loginHint" class="muted">Suggested from your Salesforce tab. You can edit it here.</p>
+<button id="testLogin" class="textAction">Test login server</button>
+<div id="connectedDetails" hidden>
+<p id="authIdentity" class="muted" hidden></p>
+<button id="recheckConnection" class="textAction" hidden>Recheck connection</button>
+<button id="disconnect" class="textAction" hidden>Disconnect Salesforce</button>
+</div>
+</div>
+</details>
+<details class="captureInfo"><summary>Capture details</summary><div class="settingsContent">
+<p id="captureDescription" class="muted">Records video, network activity, and console errors. A Salesforce connection adds Apex logs.</p>
+<div id="captureHelp" class="inlineHelp"></div>
+</div></details>
+<details><summary>Salesforce requirements</summary><div id="requirementsHelp" class="settingsContent inlineHelp"></div></details>
+<details><summary>How Apex capture works</summary><div id="apexHelp" class="settingsContent inlineHelp"></div></details>
+<details><summary>PII redaction settings</summary><div id="piiSettings" class="settingsContent"></div></details>
+</section>
+</main>
+<footer class="capturePrivacy">Evidence stays on this device.<br>Video is unredacted.</footer>
+<script type="module" src="popup.js"></script></body></html>

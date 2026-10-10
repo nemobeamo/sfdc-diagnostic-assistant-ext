@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Salesforce Support Diagnostic Assistant (Prototype)",
+  "version": "0.6.2",
+  "description": "Record a Salesforce reproduction and export local diagnostic evidence.",
+  "minimum_chrome_version": "118",
+  "permissions": [
+    "activeTab",
+    "tabCapture",
+    "debugger",
+    "offscreen",
+    "storage",
+    "alarms",
+    "identity",
+    "scripting"
+  ],
+  "optional_host_permissions": [
+    "https://*.salesforce.com/*",
+    "https://*.force.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Salesforce diagnostics",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAljQc+U1hFIQXDM6ncP7fkBhJp1U5C1wI2ruO4c1kgmz8YqzoEsCccJPxsunQofmvEVnrQfO6YGpBcUWHtqjwHV2GVnRtFaM5B/R5sBgJokEOMr29JgKaI46t69NjbfRvmA96pm1MpEx0lzRjcsiVeUALploG2FaNNcNh/VLmFeKJr2uyxHtlGBJfSFMvT15Ui1SjeVv11yfl/LyoHaK8ZuwtlRSJep7GTegLr471ysmBmMorr32ks44fODkd2uERfSvptGGbv7h/y/QuPNRKaagklEjQ6Sk9QuSE0rFA30LEeRc6mjxr+o4OLTtG+4o2sU/VO2ClVjqiCXxcpW3ISwIDAQAB",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

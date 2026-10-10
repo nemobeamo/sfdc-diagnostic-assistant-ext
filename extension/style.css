@@ -1,0 +1,21 @@
+:root{font:16px/1.5 system-ui,sans-serif;color:#172b4d;background:#f5f8fc}*{box-sizing:border-box}body{margin:0;padding:28px;max-width:1100px;margin-inline:auto}h1{font-size:28px;line-height:1.15;margin:8px 0 18px}h2{font-size:20px}.eyebrow{font-size:11px;font-weight:800;letter-spacing:1.6px;color:#315a93}.notice{background:#fff3d6;border-left:3px solid #b77905;padding:12px;font-size:13px}button{border:0;border-radius:8px;padding:12px 18px;background:#175cd3;color:white;font:inherit;font-weight:600;cursor:pointer;margin:6px 8px 6px 0}button:disabled{opacity:.5;cursor:wait}button.secondary{background:#dde6f2;color:#172b4d}select,input,textarea{font:inherit;max-width:100%}select,input[type=url]{width:100%;padding:8px}label{display:block;margin:14px 0}.muted{color:#5b6b82;font-size:12px}video{width:100%;max-height:420px;background:#101828;border-radius:10px}.card{background:white;padding:20px;margin-block:20px;border-radius:12px;box-shadow:0 2px 12px #183b5620}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:350px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:8px;border-bottom:1px solid #e4eaf3;overflow-wrap:anywhere}td:last-child{max-width:600px}textarea{width:100%;min-height:100px}[hidden]{display:none!important}a{color:#175cd3}details{border:1px solid #dde6f2;border-radius:8px;padding:12px}summary{cursor:pointer;font-weight:600}code{overflow-wrap:anywhere;font-size:11px}
+
+.sectionExplanation { color:#45556e; font-size:14px; line-height:1.6; margin:0 0 16px; max-width:80ch; }
+
+.inlineHelp { font-size:14px; line-height:1.6; }
+.inlineHelp li { margin-bottom:12px; }
+.inlineHelp ul, .inlineHelp ol { padding-left:22px; }
+.inlineHelp a { overflow-wrap:anywhere; }
+details.inlineHelp { margin:12px 0; }
+
+.requiredPermissions { background:#eef5ff; border:1px solid #b8cee9; border-radius:8px; padding:14px; margin:14px 0; }
+.inlineHelp h3 { font-size:15px; margin:0 0 10px; }
+.requiredPermissions ul { margin:8px 0 12px; }
+.requiredPermissions li strong { font-size:15px; }
+.requiredPermissions p { margin:0; }
+
+.piiSettings { font-size:13px; line-height:1.5; }
+.piiSettings label:has(input[type=checkbox]) { display:flex; gap:8px; align-items:center; margin:10px 0; }
+.piiSettings p { margin:10px 0; }
+.piiSettings textarea { min-height:70px; width:100%; font-size:13px; }
+.piiSettings pre { max-height:160px; }
