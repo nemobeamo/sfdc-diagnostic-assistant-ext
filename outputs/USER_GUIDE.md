@@ -227,3 +227,13 @@ Use **Preview redaction** with an optional sample to see placeholders and detect
 On the review page, expand **Configure PII redaction**, change the rules, and select **Apply redaction** to update this saved evidence and future recording preferences. Previously removed text cannot be restored. Inspect the updated logs, browser messages, and other evidence before export. The ZIP includes the category settings and custom-rule counts, but excludes custom values and field names. Older recordings show their original email/credential filtering until you apply new rules.
 
 Text redaction is best effort. Phone detection covers common 10-digit formats with an optional country code; add custom values for other formats. Card candidates must pass a checksum, but detection can still miss data or mask unrelated values. Video is not redacted and remains included by default unless you deselect it.
+
+### Choosing the login URL and troubleshooting Login As
+
+The **Login** URL at the top follows the editable **Salesforce login URL** field. Connect and Test login server both use that selected URL. The **Recording tab** shown under Capture details identifies the browser page you will record; its Lightning host normally differs from the org's My Domain login host.
+
+If Connect fails during authorization while you are using an administrator's **Login As** feature, exit that session and sign in directly as the intended user with their own username/SSO. Salesforce blocks OAuth authorization from impersonated sessions, even if app access has been assigned. A successful Test login server confirms endpoint reachability; it does not test user authorization or app configuration.
+
+### Connected account details
+
+Expand **Connection settings** to see separate **Org ID** and **User ID** fields with Copy buttons. The table below shows available name, username, email, nickname, email verification, time zone, locale, and API version. These details come from existing connection checks; no additional Salesforce requests are made. Missing fields are hidden. Nickname is not the Salesforce user alias.

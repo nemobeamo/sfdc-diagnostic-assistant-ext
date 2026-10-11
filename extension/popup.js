@@ -46,7 +46,17 @@ for (const [id, type] of [['start', 'START'], ['stop', 'STOP'], ['review', 'REVI
 refresh().catch(e => { el('status').textContent = e.message; });
 
 let loginEdited = false;
-el('loginOrigin').oninput = () => { loginEdited = true; };
+function displayLoginTarget() {
+  if (connection?.status === 'connected') {
+    el('connectedOrg').textContent = 'Connected org: ' + connection.instanceUrl;
+  } else {
+    try { el('connectedOrg').textContent = 'Login: ' + salesforceOrigin(el('loginOrigin').value); }
+    catch { el('connectedOrg').textContent = 'Enter a valid Salesforce login URL below.'; }
+  }
+  el('connectedOrg').title = el('connectedOrg').textContent;
+  el('recordedPage').textContent = isRecordableUrl(activeTab?.url) ? 'Recording tab: ' + new URL(activeTab.url).origin : 'Open a web tab to record browser evidence.';
+}
+el('loginOrigin').oninput = () => { loginEdited = true; displayLoginTarget(); };
 async function authSend(message) {
   const reply = await chrome.runtime.sendMessage({ target: 'salesforce-auth', ...message });
   if (!reply?.ok) throw new Error(reply?.error || 'Salesforce connection unavailable.');
@@ -64,19 +74,30 @@ function displayAuth(c) {
   el('authStatus').hidden = connected;
   el('connectionLabel').textContent = connected ? 'Connected to Salesforce' : 'Browser diagnostics';
   el('connectionLabel').dataset.connected = String(connected);
-  el('connectedOrg').textContent = connected ? new URL(c.instanceUrl).hostname : isSalesforceUrl(activeTab?.url) ? new URL(activeTab.url).hostname : 'Salesforce connection is optional';
-  el('connectedOrg').title = el('connectedOrg').textContent;
+
   el('connectedDetails').hidden = !['connected', 'permission-needed', 'connecting', 'verification-needed'].includes(c.status);
   el('captureControls').hidden = false;
   el('recheckConnection').hidden = !['connected', 'verification-needed'].includes(c.status);
   el('authIdentity').hidden = c.status !== 'connected';
-  el('authIdentity').textContent = c.status === 'connected' ? 'Org: ' + c.orgId + ' · User: ' + c.userId + ' · Verified: ' + new Date(c.verifiedAt).toLocaleTimeString() : '';
+  const details = connected ? c.userDetails || {} : {};
+  el('orgId').value = connected ? c.orgId || '' : '';
+  el('userId').value = connected ? c.userId || '' : '';
+  el('copyStatus').textContent = '';
+  const identityValues = {displayName: details.display_name, username: details.username, email: details.email,
+    nickname: details.nick_name, timezone: details.timezone, locale: details.locale,
+    emailVerified: typeof details.email_verified === 'boolean' ? (details.email_verified ? 'Yes' : 'No') : '',
+    apiVersion: connected ? c.apiVersion : ''};
+  for (const [id, value] of Object.entries(identityValues)) {
+    el(id).textContent = typeof value === 'string' ? value : '';
+    el(id + 'Row').hidden = !el(id).textContent;
+  }
+  el('verifiedAt').textContent = connected ? 'Verified: ' + new Date(c.verifiedAt).toLocaleTimeString() : '';
   if (c.loginOrigin && !loginEdited && !loginSuggestion) el('loginOrigin').value = c.loginOrigin;
   el('authDiagnostic').hidden = !c.diagnostic || connected && c.diagnostic.stage === 'connected';
   el('connect').disabled = c.status === 'connecting';
   el('connect').hidden = c.status === 'connected' || c.status === 'permission-needed';
   el('authDiagnostic').textContent = c.diagnostic?.stage === 'server-test' && c.diagnostic.code === 'reachable'
-    ? 'The browser reached the Salesforce token endpoint. The expected rejection contains no credentials.' + (el('connect').hidden || captureActive ? '' : ' Try Connect Salesforce next.')
+    ? 'Login server is reachable.' + (el('connect').hidden || captureActive ? '' : ' Select Connect Salesforce to continue.')
     : c.diagnostic?.message || '';
   el('finish').hidden = c.status !== 'permission-needed';
   el('disconnect').hidden = !['connected', 'permission-needed', 'connecting', 'verification-needed'].includes(c.status);
@@ -86,7 +107,7 @@ function displayAuth(c) {
     : c.status === 'connecting' ? 'Complete Salesforce login in the authorization window, then reopen this popup.'
     : c.status === 'verification-needed' ? 'Connection could not be verified. Recheck or reconnect to include Apex logs.'
     : 'Connect to include Apex logs. You can still record browser evidence without connecting.';
-  updateHierarchy();
+  displayLoginTarget(); updateHierarchy();
 }
 el('connect').onclick = async () => {
   el('connect').disabled = true;
@@ -96,9 +117,13 @@ el('connect').onclick = async () => {
     const allowed = await chrome.permissions.request({ origins });
     if (!allowed) throw new Error('Salesforce site access was not granted.');
     await chrome.storage.local.set({ preferredOAuthOrigin: loginOrigin });
+    el('authDiagnostic').hidden = true;
     el('authStatus').textContent = 'Complete Salesforce login. The extension will verify the connection automatically.';
     displayAuth(await authSend({ type: 'CONNECT', loginOrigin }));
-  } catch (error) { el('authStatus').textContent = error.message; }
+  } catch (error) {
+    try { displayAuth(await authSend({type:'STATUS'})); } catch { /* Keep the original connection failure. */ }
+    el('authStatus').textContent = error.message;
+  }
   finally { el('connect').disabled = false; }
 };
 el('finish').onclick = async () => {
@@ -145,8 +170,22 @@ el('testLogin').onclick = async () => {
   try {
     const loginOrigin = salesforceOrigin(el('loginOrigin').value);
     const allowed = await chrome.permissions.request({ origins: [loginOrigin + '/*'] });
-    if (!allowed) throw new Error('Allow access to this login domain before testing it.');
+    if (!allowed) throw new Error('Allow access to this login URL, then try again.');
     displayAuth(await authSend({ type: 'CHECK_SERVER', loginOrigin }));
   } catch (error) { el('authStatus').textContent = error.message; }
   finally { el('testLogin').disabled = false; }
 };
+
+for (const [buttonId, fieldId, label] of [['copyOrgId', 'orgId', 'Org ID'], ['copyUserId', 'userId', 'User ID']]) {
+  el(buttonId).onclick = async () => {
+    const field = el(fieldId);
+    if (!field.value) return;
+    try {
+      await navigator.clipboard.writeText(field.value);
+      el('copyStatus').textContent = label + ' copied.';
+    } catch {
+      field.focus(); field.select();
+      el('copyStatus').textContent = 'Press Ctrl+C (Command+C on Mac) to copy the selected ' + label.toLowerCase() + '.';
+    }
+  };
+}

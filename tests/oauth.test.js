@@ -30,10 +30,11 @@ test('login and identity destinations reject untrusted origins and URL credentia
   assert.throws(() => validateIdentityUrl('https://evil.example/id/' + orgId + '/' + userId));
   assert.throws(() => validateIdentityUrl(identityUrl + '?token=anything'));
 });
-function harness({ deny = false, badState = false, tokenFailure = false, badIdentity = false, revoked = true, fetchError = false, providerError, isOnline, losePermission = false, apiDenied = false } = {}) {
+function harness({ deny = false, badState = false, tokenFailure = false, badIdentity = false, revoked = true, fetchError = false, providerError, isOnline, losePermission = false, apiDenied = false, authError, identityDetails = {} } = {}) {
   const session = {}, calls = [], allowed = new Set(['https://login.salesforce.com/*']);
   const chromeApi = {
     identity: { getRedirectURL: () => redirect, async launchWebAuthFlow({ url }) {
+      if (authError) throw authError;
       if (deny) throw new Error('raw provider detail');
       const state = new URL(url).searchParams.get('state');
       if (losePermission) allowed.clear();
@@ -51,7 +52,7 @@ function harness({ deny = false, badState = false, tokenFailure = false, badIden
       : Response.json({ access_token: 'private-token', instance_url: 'https://acme.my.salesforce.com', id: identityUrl, token_type: 'Bearer' });
     if (url.endsWith('/services/data/v67.0/')) return apiDenied ? new Response('private details', {status:403}) : Response.json({sobjects:'/services/data/v67.0/sobjects'});
     if (url.endsWith('/revoke')) return new Response(null, { status: revoked ? 200 : 503 });
-    return Response.json({ organization_id: badIdentity ? '00D999999999999' : orgId, user_id: userId });
+    return Response.json({ ...identityDetails, organization_id: badIdentity ? '00D999999999999' : orgId, user_id: userId });
   };
   return { auth: new SalesforceAuth({ chromeApi, clientId: 'public-client', fetchImpl, cryptoImpl: webcrypto, isOnline }), session, calls, allowed };
 }
@@ -241,4 +242,32 @@ test('automatic verification cannot claim connected with invalid identity or den
     await assert.rejects(h.auth.connect('https://login.salesforce.com'));
     assert.notEqual((await h.auth.status()).status,'connected');
   }
+});
+
+test('authorization failures retain safe browser categories without exposing provider details',async()=>{
+  for(const [message,code] of [
+    ['Authorization page could not be loaded. private-token','authorization-page-load-failed'],
+    ['The user did not approve access.','authorization-canceled'],
+    ['Did not redirect to the right URL.','authorization-redirect-failed'],
+    ['Identity API is disabled in incognito windows.','authorization-private-window'],
+    ['raw provider details private-token','authorization-failed']
+  ]){
+    const h=harness({authError:new Error(message)});
+    await assert.rejects(h.auth.connect('https://login.salesforce.com'),error=>error.code===code && !error.message.includes('private-token'));
+    assert.equal((await h.auth.status()).diagnostic.code,code);
+    assert.equal(h.calls.length,0);
+  }
+});
+
+test('verification retains only bounded user details from the existing identity response',async()=>{
+  const h=harness({identityDetails:{display_name:'Test User',username:'test@example.com',email:'test@example.com',nick_name:'tester',timezone:'America/New_York',locale:'en_US',email_verified:false,photos:{picture:'private-url'},access_token:'provider-secret',addr_street:'private address'}});
+  await h.auth.connect('https://login.salesforce.com');
+  h.allowed.add('https://acme.my.salesforce.com/*');
+  const status=await h.auth.finish();
+  assert.deepEqual(status.userDetails,{display_name:'Test User',username:'test@example.com',email:'test@example.com',nick_name:'tester',timezone:'America/New_York',locale:'en_US',email_verified:false});
+  assert.equal(h.calls.length,3,'profile details add no requests');
+  assert.ok(!JSON.stringify(h.session).includes('private address'));
+  assert.ok(!JSON.stringify(status).includes('provider-secret'));
+  await h.auth.disconnect();
+  assert.equal((await h.auth.status()).userDetails,undefined);
 });

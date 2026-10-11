@@ -27,6 +27,15 @@ export class OAuthConnectionError extends Error {
     super(message); this.code = code; this.origin = origin; this.httpStatus = httpStatus;
   }
 }
+function authorizationTransportError(error, origin) {
+  // Persist only recognized browser categories, never arbitrary provider text or URLs.
+  const message = String(error?.message || '');
+  if (/Authorization page could not be loaded/i.test(message)) return new OAuthConnectionError('The browser could not load the Salesforce authorization page. The login-server test checks a different endpoint. If you are using an administrator’s Login As session, exit it and sign in directly as the user; Salesforce blocks OAuth authorization during impersonation. Otherwise check the app consumer key, callback, OAuth settings, and browser/network policy.', 'authorization-page-load-failed', origin);
+  if (/user did not approve access|^canceled$|^cancelled$/i.test(message)) return new OAuthConnectionError('The Salesforce authorization window was closed or access was declined. Try Connect Salesforce again and complete the login window.', 'authorization-canceled', origin);
+  if (/Did not redirect to the right URL/i.test(message)) return new OAuthConnectionError('Salesforce did not return to this extension’s registered callback. Check the app callback URL.', 'authorization-redirect-failed', origin);
+  if (/Identity API is disabled in incognito/i.test(message)) return new OAuthConnectionError('Salesforce authorization is unavailable in this private browsing window. Connect in a normal browser window.', 'authorization-private-window', origin);
+  return new OAuthConnectionError('Salesforce authorization could not complete. Check the app consumer key, callback, user assignment, and OAuth access policy.', 'authorization-failed', origin);
+}
 function tokenTransportError(error, origin, online) {
   const hostname = new URL(origin).hostname;
   if (error?.name === 'TimeoutError' || error?.name === 'AbortError') return new OAuthConnectionError(`Salesforce token exchange timed out at ${hostname}. Check your connection and try again.`, 'timeout', origin);
@@ -84,6 +93,16 @@ export function validateIdentityUrl(value) {
   }
   return { url: url.href, orgId: parts[2], userId: parts[3] };
 }
+// Keep only useful identity fields; never retain the full provider response.
+function userDetails(identity = {}) {
+  const result = {};
+  for (const key of ['display_name', 'username', 'email', 'nick_name', 'timezone', 'locale']) {
+    if (typeof identity[key] === 'string' && identity[key].trim()) result[key] = identity[key].trim().slice(0, 320);
+  }
+  if (typeof identity.email_verified === 'boolean') result.email_verified = identity.email_verified;
+  return result;
+}
+
 export class SalesforceAuth {
   #chrome; #fetch; #clientId; #crypto; #online; #connecting = false; #generation = 0; #writes = Promise.resolve(); #validation;
   constructor({ chromeApi, clientId, fetchImpl = fetch, cryptoImpl = crypto, isOnline = () => globalThis.navigator?.onLine !== false }) {
@@ -120,6 +139,7 @@ export class SalesforceAuth {
       loginOrigin: c.loginOrigin, diagnostic, verifiedAt: c.verifiedAt, apiVersion: c.apiVersion,
       orgId: c.status === 'connected' ? c.orgId : undefined,
       userId: c.status === 'connected' ? c.userId : undefined,
+      userDetails: c.status === 'connected' ? userDetails(c.userDetails) : undefined,
       requiredOrigins: c.status === 'permission-needed' ? [...new Set([c.instanceUrl + '/*', new URL(c.identityUrl).origin + '/*'])] : [] };
   }
   async connect(value) {
@@ -133,7 +153,7 @@ export class SalesforceAuth {
       const url = authorizationUrl({ loginOrigin, clientId: this.#clientId, redirectUri: this.redirectUri, challenge, state });
       let callback;
       try { callback = await this.#chrome.identity.launchWebAuthFlow({ url, interactive: true }); }
-      catch { throw new Error('Salesforce login was canceled or could not complete. Verify the app callback and access policy.'); }
+      catch (error) { throw authorizationTransportError(error, loginOrigin); }
       if (generation !== this.#generation) throw new Error('Connection canceled.');
       const code = callbackCode(callback, this.redirectUri, state);
       // Browser site access can change while the Salesforce login window is open.
@@ -176,7 +196,7 @@ export class SalesforceAuth {
   }
   async checkServer(value) {
     const origin = salesforceOrigin(value);
-    if (!await this.#chrome.permissions.contains({ origins: [origin + '/*'] })) throw new Error('Grant access to this Salesforce login domain before testing it.');
+    if (!await this.#chrome.permissions.contains({ origins: [origin + '/*'] })) throw new Error('Allow access to this login URL, then try again.');
     let result;
     try {
       // Intentionally incomplete OAuth request. No client ID, secret, code, token,
@@ -185,17 +205,20 @@ export class SalesforceAuth {
         credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(10000),
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=authorization_code' });
       if (response.type === 'opaqueredirect' || response.status >= 300 && response.status < 400) {
-        result = { stage: 'server-test', code: 'redirected', origin, message: 'The token endpoint redirected this test. Use your org’s My Domain login URL and test again.' };
+        result = { stage: 'server-test', code: 'redirected', origin, message: 'Use your Salesforce My Domain login URL, then test again.' };
       } else if (response.status === 400 || response.status === 401) {
         result = { stage: 'server-test', code: 'reachable', origin, httpStatus: response.status,
-          message: 'The browser reached the Salesforce token endpoint. The expected rejection contains no credentials.' };
+          message: 'Login server is reachable.' };
       } else {
         result = { stage: 'server-test', code: 'unexpected-http', origin, httpStatus: response.status,
-          message: `The login server returned HTTP ${response.status} to the test. Check that this is your Salesforce My Domain login URL.` };
+          message: 'Login server could not be verified. Check the login URL and try again.' };
       }
     } catch (error) {
       const safe = tokenTransportError(error, origin, this.#online());
-      result = { stage: 'server-test', code: safe.code, origin, message: safe.message };
+      const message = safe.code === 'timeout' ? 'Login server took too long to respond. Try again.'
+        : safe.code === 'offline' ? 'You’re offline. Connect to the internet and try again.'
+        : 'Could not reach the login server. Check the login URL and your connection.';
+      result = { stage: 'server-test', code: safe.code, origin, message };
     }
     await this.#diagnostic(result); return { ...(await this.status()), diagnostic: result };
   }
@@ -256,7 +279,7 @@ export class SalesforceAuth {
       if (!api.ok) throw new Error('The External Client App cannot access this org’s Salesforce API. Check the api scope and user access, then recheck.');
       const resources = await api.json();
       if (!resources || typeof resources !== 'object' || Array.isArray(resources)) throw new Error('Salesforce returned an invalid API response.');
-      await this.#save({ ...c, status: 'connected', verifiedAt: Date.now(), apiVersion }, generation);
+      await this.#save({ ...c, status: 'connected', verifiedAt: Date.now(), apiVersion, userDetails: userDetails(identity) }, generation);
       if (generation !== this.#generation) throw new Error('Connection canceled.');
       await this.#diagnostic({ stage: 'connected', origin: c.loginOrigin, message: 'External Client App connection verified against Salesforce identity and API. Apex capture will use this authorized user.' });
     } catch (error) {

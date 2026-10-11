@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Salesforce Support Diagnostic Assistant (Prototype)",
-  "version": "0.6.2",
+  "version": "0.6.7",
   "description": "Record a Salesforce reproduction and export local diagnostic evidence.",
   "minimum_chrome_version": "118",
   "permissions": [

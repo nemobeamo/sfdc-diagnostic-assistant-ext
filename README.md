@@ -97,3 +97,7 @@ Version 0.6.0 adds configurable local PII redaction. The popup's PII redaction s
 Version 0.6.1 combines the normal Salesforce connection flow: Connect requests known exact login/org/identity domains during its initial click, and OAuth automatically verifies identity and API access after token exchange. Pending connections finish automatically when validation finds that access has been granted. An unexpected returned org/identity domain still requires the existing exact-domain permission fallback.
 
 Version 0.6.2 adds an original blue cloud-and-pulse icon in 16, 32, 48, and 128-pixel transparent PNG sizes, registered for toolbar and extension management. Original artwork and design prompt are included under outputs.
+
+Version 0.6.4 makes the selected login field visible as the OAuth target, labels the recording tab separately, clears stale server-test guidance on connection attempts, and preserves safe browser authorization-failure categories. Inline help explains Salesforce's restriction on OAuth authorization from Login As sessions.
+
+Version 0.6.7 includes a consistent popup theme, visible action buttons, separate org/user ID fields with Copy buttons, and a table of available user details from the existing identity response. Login-server test messages now use short, plain-language results.

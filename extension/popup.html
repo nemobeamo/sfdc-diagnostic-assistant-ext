@@ -17,7 +17,7 @@
 </div>
 </div>
 <p id="status" class="captureStatus" role="status">Checking recording…</p>
-<button id="review" class="textAction evidenceAction" hidden>Open latest evidence</button>
+<button id="review" class="secondary evidenceAction" hidden>Open latest evidence</button>
 <p id="authDiagnostic" class="notice" role="status" hidden></p>
 </section>
 <section class="settingsGroup" aria-label="Diagnostic settings">
@@ -26,15 +26,33 @@
 <div class="settingsContent">
 <label for="loginOrigin">Salesforce login URL</label><input id="loginOrigin" type="url" value="https://login.salesforce.com" autocomplete="off" spellcheck="false">
 <p id="loginHint" class="muted">Suggested from your Salesforce tab. You can edit it here.</p>
-<button id="testLogin" class="textAction">Test login server</button>
+<button id="testLogin" class="secondary settingsAction">Test login server</button>
 <div id="connectedDetails" hidden>
-<p id="authIdentity" class="muted" hidden></p>
-<button id="recheckConnection" class="textAction" hidden>Recheck connection</button>
-<button id="disconnect" class="textAction" hidden>Disconnect Salesforce</button>
+<div id="authIdentity" class="authIdentity" hidden>
+<label for="orgId">Org ID</label>
+<div class="identityRow"><input id="orgId" type="text" readonly spellcheck="false"><button id="copyOrgId" class="secondary copyAction" aria-label="Copy org ID">Copy</button></div>
+<label for="userId">User ID</label>
+<div class="identityRow"><input id="userId" type="text" readonly spellcheck="false"><button id="copyUserId" class="secondary copyAction" aria-label="Copy user ID">Copy</button></div>
+<p id="copyStatus" class="muted" role="status"></p>
+<table class="identityTable" aria-label="Salesforce account details"><tbody>
+<tr id="displayNameRow"><th scope="row">Name</th><td id="displayName"></td></tr>
+<tr id="usernameRow"><th scope="row">Username</th><td id="username"></td></tr>
+<tr id="emailRow"><th scope="row">Email</th><td id="email"></td></tr>
+<tr id="nicknameRow"><th scope="row">Nickname</th><td id="nickname"></td></tr>
+<tr id="emailVerifiedRow"><th scope="row">Email verified</th><td id="emailVerified"></td></tr>
+<tr id="timezoneRow"><th scope="row">Time zone</th><td id="timezone"></td></tr>
+<tr id="localeRow"><th scope="row">Locale</th><td id="locale"></td></tr>
+<tr id="apiVersionRow"><th scope="row">API version</th><td id="apiVersion"></td></tr>
+</tbody></table>
+<p id="verifiedAt" class="muted"></p>
+</div>
+<button id="recheckConnection" class="secondary settingsAction" hidden>Recheck connection</button>
+<button id="disconnect" class="secondary settingsAction" hidden>Disconnect Salesforce</button>
 </div>
 </div>
 </details>
 <details class="captureInfo"><summary>Capture details</summary><div class="settingsContent">
+<p id="recordedPage" class="muted"></p>
 <p id="captureDescription" class="muted">Records video, network activity, and console errors. A Salesforce connection adds Apex logs.</p>
 <div id="captureHelp" class="inlineHelp"></div>
 </div></details>
